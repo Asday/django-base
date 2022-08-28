@@ -1,0 +1,4 @@
+# Requirements files are stored in the project root's `requirements/`
+# directory and hardlinked here for docker to access them.
+*
+!.gitignore

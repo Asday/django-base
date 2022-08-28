@@ -1,0 +1,14 @@
+#!/bin/bash
+
+cd "${0%/*}"
+
+cd ..
+if $DOCKER_COMPOSE ps --services --status running | grep -q db
+then
+  cmd="exec"
+else
+  cmd="run --rm"
+fi
+
+$DOCKER_COMPOSE $cmd db sh -c \
+  "psql -U \$POSTGRES_USER -d \$POSTGRES_DB $(printf '%q ' "$*")"

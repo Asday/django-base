@@ -1,0 +1,8 @@
+baseURL = "https://127.0.0.1/"
+languageCode = "en-gb"
+title = "Project Manual"
+theme = "hugo-book"
+
+[params]
+BookTheme = "dark"
+BookComments = false

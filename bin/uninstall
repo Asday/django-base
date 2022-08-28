@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+shopt -s nullglob
+cd "${0%/*}"
+
+cd ..
+
+rm -f .installed
+touch .built .completions-generated .migrated
+
+db -qc "DROP SCHEMA IF EXISTS $DJANGO_DATABASES_SCHEMA;"
+rm .migrated
+
+rm -f bin/completions/*
+rm .completions-generated
+
+$DOCKER_COMPOSE stop
+$DOCKER_COMPOSE down -v
+rm .built
+
+cat <<EOF
+Leaving \`.envrc\` in place to preserve any configuration set.  If this is
+undesirable, please run \`rm .envrc\` before installing.
+EOF

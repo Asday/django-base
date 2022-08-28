@@ -1,0 +1,4 @@
+# Media files uploaded during the course of development aren't to be
+# shared.
+*
+!.gitignore

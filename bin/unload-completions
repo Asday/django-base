@@ -1,0 +1,4 @@
+for completion in bin/completions/*
+do
+  complete -r ${completion##*/} > /dev/null 2>&1
+done

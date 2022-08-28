@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cd "${0%/*}"
+
+cd ..
+$DOCKER_COMPOSE run --rm flake8 \
+  && echo -e "\033[0;32mflake8 ok\033[0m" \
+  && manage check \
+  && $DOCKER_COMPOSE run --rm pytest

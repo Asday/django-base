@@ -1,0 +1,10 @@
+shopt -q nullglob
+NG=$?
+shopt -s nullglob
+
+for completion in bin/completions/*
+do
+  source $completion
+done
+
+test $NG && shopt -u nullglob

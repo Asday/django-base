@@ -1,0 +1,89 @@
+#!/bin/bash
+
+set -e
+cd "${0%/*}"
+
+ALREADY_INSTALLED=$(cat <<EOF
+Already installed.  Consider \`./bin/uninstall\` and trying again if you
+are experiencing issues.
+EOF
+)
+
+cd ..
+
+if test ! -e .installed
+then
+  git submodule update --init --recursive
+
+  pushd docker/python/requirements
+
+  pushd django
+  ln -f ../../../../requirements/base.txt
+  ln -f ../../../../requirements/database.txt
+  ln -f ../../../../requirements/webserver.txt
+  popd
+
+  pushd celery
+  ln -f ../../../../requirements/base.txt
+  ln -f ../../../../requirements/database.txt
+  popd
+
+  pushd test
+  ln -f ../../../../requirements/base.txt
+  ln -f ../../../../requirements/database.txt
+  ln -f ../../../../requirements/test.txt
+  popd
+
+  popd
+
+  pushd docker/lint
+  ln -f ../../requirements/lint.txt
+  popd
+
+  if test ! -e .envrc
+  then
+    cp example.envrc .envrc
+    $EDITOR .envrc
+
+    if command -v direnv > /dev/null 2>&1
+    then
+      direnv allow
+    fi
+
+    source .envrc
+  fi
+
+  ./bin/update-cert
+
+  if test ! -e .built
+  then
+    $DOCKER_COMPOSE --profile test build
+    touch .built
+  fi
+
+  if test ! -e .completions-generated
+  then
+    ./bin/regenerate-completions
+    touch .completions-generated
+  fi
+
+  if test ! -e .migrated
+  then
+    $DOCKER_COMPOSE --profile test up -d
+    if ./bin/manage wait_for_db
+    then
+      ./bin/create-schema
+      ./bin/manage migrate
+    else
+      echo 'Database failed to respond, please inspect `$DOCKER_COMPOSE ps`.'
+    fi
+    touch .migrated
+  fi
+
+  ./bin/manage collectstatic --noinput
+
+  rm .built .completions-generated .migrated
+  touch .installed
+else
+  echo "$ALREADY_INSTALLED"
+fi

@@ -1,0 +1,4 @@
+# Local development SSL certificates are security footguns and shouldn't
+# be shared.
+cert.pem
+key.pem

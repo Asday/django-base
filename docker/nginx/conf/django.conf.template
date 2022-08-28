@@ -1,0 +1,72 @@
+server {
+	listen		${PORT} ssl http2;
+	listen		[::]:${PORT} ssl http2;
+
+	ssl_certificate		/srv/cert/cert.pem;
+	ssl_certificate_key	/srv/cert/key.pem;
+
+	# HSTS params.
+	add_header	Strict-Transport-Security "max-age=31536000" always;
+
+	# SSL params.
+	ssl_protocols	TLSv1.3 TLSv1.2;
+
+	# `openssl dhparam -out dhparam4096.pem 4096`.
+	ssl_dhparam	/etc/nginx/dhparam.pem;
+	ssl_ecdh_curve	secp384r1;
+
+	ssl_ciphers	AES256+EECDH:AES256+EDH:!aNULL;
+
+	ssl_session_cache		shared:SSL:10m;
+	ssl_session_timeout		10m;
+	ssl_prefer_server_ciphers	on;
+
+	# OCSP stapling has no effect for self-signed certs, but set it
+	# anyway to ease designing a production deployment.
+	ssl_stapling			on;
+	ssl_stapling_verify		on;
+
+	resolver		8.8.8.8 8.8.4.4 valid=300s;
+	resolver_timeout	10s;
+
+	add_header	X-Frame-Options DENY;
+	add_header	X-Content-Type-Options nosniff;
+
+	location /static/ {
+		root /srv/;
+	}
+
+	location /media/public/ {
+		root /srv/;
+	}
+	location /media/private/ {
+		root /srv/;
+		internal;
+	}
+
+	location / {
+		proxy_pass		http://django:${PORT};
+		proxy_set_header	X-Real-IP $remote_addr;
+		proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header	X-Forwarded-Proto $scheme;
+		proxy_set_header	X-Forwarded-Port $server_port;
+		proxy_set_header	Host $host;
+		proxy_redirect		off;
+
+		proxy_http_version	1.1;
+		proxy_set_header	Upgrade $http_upgrade;
+		proxy_set_header	Connection "upgrade";
+	}
+}
+
+# HTTP for completeness to ease designing a production deployment.  This
+# block is not accessible from the host.
+server {
+	listen		80;
+	listen		[::]:80;
+
+	# HSTS params.
+	add_header	Strict-Transport-Security "max-age=31536000" always;
+
+	return	301 https://$host$request_uri;
+}

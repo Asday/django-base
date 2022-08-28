@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+cd "${0%/*}"
+
+cd ..
+COMPLETIONS="$($DOCKER_COMPOSE run --rm -e DJANGO_SETTINGS_MODULE="_.settings" django python -c 'from django import setup; from django.core.management import get_commands; setup(); print("\n".join(get_commands().keys()))')"
+CONTENTS=$(cat <<EOF
+complete -r manage > /dev/null 2>&1
+complete -W "$COMPLETIONS" manage
+EOF
+)
+
+echo "$CONTENTS" > bin/completions/manage

@@ -1,0 +1,203 @@
+version: '3.2'
+
+x-python-build-args: &python-build-args
+  docker_uid: $DOCKER_HOST_UID
+  docker_gid: $DOCKER_HOST_GID
+
+x-python-build: &python-build
+  context: ./docker/python
+  args:
+    <<: *python-build-args
+
+x-python-env-config: &python-env-config
+  DJANGO_SECRET_KEY:
+  DJANGO_DEBUG:
+  DJANGO_ALLOWED_HOSTS:
+  DJANGO_LANGUAGE_CODE:
+  DJANGO_TIME_ZONE:
+  DJANGO_ADMINS:
+  DJANGO_AUTH_PASSWORD_VALIDATORS:
+  DJANGO_DATABASES_SCHEMA:
+
+x-python-env: &python-env
+  <<: *python-env-config
+  DJANGO_CSRF_TRUSTED_ORIGINS: |
+    ["https://127.0.0.1:$DOCKER_DJANGO_PORT"]
+  DJANGO_DATABASES_HOST: db
+  DJANGO_DATABASES_USER: python
+  DJANGO_DATABASES_PASSWORD: python
+  DJANGO_DATABASES_NAME: python
+  DJANGO_CACHES: |
+    {
+      "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://redis:6379/0"
+      }
+    }
+  DJANGO_EMAIL_HOST: mailpit
+  DJANGO_EMAIL_PORT: 1025
+  DJANGO_STATIC_ROOT: /srv/static
+  DJANGO_MEDIA_ROOT: /srv/media/public
+  CELERY_BROKER_URL: redis://redis:6379/1
+  CELERY_RESULT_BACKEND: redis://redis:6379/1
+
+x-python: &python
+  volumes:
+    - ./src:/src
+    - ./docker/python/storage:/srv
+  environment: *python-env
+  stdin_open: true
+  tty: true
+
+services:
+  db:
+    image: postgres:14.2-alpine
+    environment:
+      POSTGRES_PASSWORD: python
+      POSTGRES_USER: python
+      POSTGRES_DB: python
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  db_test:
+    image: postgres:14.2-alpine
+    environment:
+      POSTGRES_PASSWORD: python
+      POSTGRES_USER: python
+      POSTGRES_DB: test_python
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
+    profiles:
+      - test
+
+  django:
+    <<: *python
+    build:
+      <<: *python-build
+      args:
+        <<: *python-build-args
+        requirements: django
+    depends_on:
+      - db
+    command: >-
+      uvicorn
+        --reload
+        --proxy-headers
+        --host 0.0.0.0
+        --port $DOCKER_DJANGO_PORT
+        _.asgi:application
+
+  redis:
+    image: redis:7.0.4-alpine
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+
+  celery:
+    <<: *python
+    build:
+      <<: *python-build
+      args:
+        <<: *python-build-args
+        requirements: celery
+    depends_on:
+      - db
+    command: celery -A _.celery worker -l WARNING
+
+  beat:
+    <<: *python
+    build:
+      <<: *python-build
+      args:
+        <<: *python-build-args
+        requirements: celery
+    depends_on:
+      - db
+    command: >-
+      celery
+        -A _.celery beat
+        -s /home/python/celerybeat-schedule
+        -l WARNING
+
+  pytest:
+    <<: *python
+    build:
+      <<: *python-build
+      args:
+        <<: *python-build-args
+        requirements: test
+    volumes:
+      - ./src:/src
+      - ./tests:/tests
+    environment:
+      <<: *python-env
+      DJANGO_DEBUG: 'false'
+      DJANGO_SECRET_KEY: 'testing'
+      DJANGO_DATABASES_HOST: db_test
+      DJANGO_DATABSES_USER: python
+      DJANGO_DATABASES_PASSWORD: python
+      DJANGO_DATABASES_NAME: python  # Django mangles this to `test_python`.
+      DJANGO_DATABASES_SCHEMA: public
+      DJANGO_CACHE_LOCATION: redis://redis:6379/15
+      CELERY_BROKER_URL: redis://redis:6379/14
+      CELERY_RESULT_BACKEND: redis://redis:6379/13
+    working_dir: /tests
+    profiles:
+      - test
+    depends_on:
+      - db_test
+    command: pytest
+
+  flake8:
+    build:
+      context: ./docker/lint
+    volumes:
+      - ./src:/src/src
+      - ./tests:/src/tests
+      - ./.flake8:/src/.flake8
+      - ./.isort.cfg:/src/.isort.cfg
+    profiles:
+      - test
+    command: flake8
+
+  flower:
+    image: mher/flower:1.2
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command: celery flower --port=$DOCKER_FLOWER_PORT
+    ports:
+      - $DOCKER_FLOWER_PORT:$DOCKER_FLOWER_PORT
+
+  mailpit:
+    image: axllent/mailpit:0.1.5
+    environment:
+      MP_UI_BIND_ADDR: 0.0.0.0:$DOCKER_MAILPIT_PORT
+    ports:
+      - $DOCKER_MAILPIT_PORT:$DOCKER_MAILPIT_PORT
+
+  nginx:
+    image: nginx:1.23.1-alpine
+    depends_on:
+      - django
+    environment:
+      PORT: $DOCKER_DJANGO_PORT
+    volumes:
+      - ./docker/nginx/conf:/etc/nginx/templates
+      - ./docker/nginx/cert:/srv/cert
+      - ./docker/nginx/cert/dhparam4096.pem:/etc/nginx/dhparam.pem
+      - ./docker/python/storage:/srv
+    ports:
+      - $DOCKER_DJANGO_PORT:$DOCKER_DJANGO_PORT
+
+  manual:
+    image: klakegg/hugo:0.101.0-ext-alpine
+    command: server -p $DOCKER_HUGO_PORT --baseURL 127.0.0.1
+    user: $DOCKER_HOST_UID:$DOCKER_HOST_GID
+    volumes:
+      - ./manual:/src
+    ports:
+      - $DOCKER_HUGO_PORT:$DOCKER_HUGO_PORT
+
+volumes:
+  pgdata:
+  pgdata_test:

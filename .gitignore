@@ -1,0 +1,8 @@
+.envrc
+__pycache__/
+
+# Install/uninstall markers.
+.installed
+.built
+.migrated
+.completions-generated
