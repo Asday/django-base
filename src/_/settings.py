@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "capabilities",
     "sendfile",
     "wait_for_db",
 ]
