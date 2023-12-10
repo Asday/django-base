@@ -1,0 +1,1 @@
+from .MODELNAME import MODELNAME

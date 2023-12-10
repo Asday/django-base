@@ -10,6 +10,7 @@ Command | Description | Required state
 `logs` | Attaches to the `django`, `celery`, and `beat` services to view their logs.
 `manage` | Unwrapped version of Django's `manage.py` script. | `django` service running
 `manual` | Forwarding alias for `hugo` in the manual docker container (which is in itself a convenience wrapper around [`hugo`](https://gohugo.io/)).
+`model-create` | Given a model name, creates and installs an app for that model.  Takes an optional second argument for the app name - defaults to the model name converted to lower_snake_case and pluralised according to some English grammar rules.
 `regenerate-completions` | (Re)generates shell completion for `manage`'s subcommands. | `django` service running
 `start` | Starts all of the installed project's services.
 `stop` | Stops all the installed project's services.

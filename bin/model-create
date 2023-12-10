@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -e
+cd "${0%/*}"
+
+if test -z "$1" -o -n "$3"
+then
+  echo "Usage: ${0##*/} MODELNAME [MODELNAME_SNAKE_CASE_PLURAL]"
+
+  exit 1
+fi
+
+MODELNAME=$1
+
+if test -z "$2"
+then
+  MODELNAME_SNAKE_CASE_PLURAL="$(
+    echo $1 |
+    sed "s/[A-Z][a-z$]/_\L\0/g" |
+    sed "s/[A-Z]*[A-Z]/_\L\0/g" |
+    sed "s/^_//" |
+    sed "s/s$/se/" |
+    sed "s/y$/ie/" |
+    sed "s/$/s/"
+  )"
+else
+  MODELNAME_SNAKE_CASE_PLURAL=$2
+fi
+
+cd ../src/
+pushd .
+
+if test -e "$MODELNAME_SNAKE_CASE_PLURAL"
+then
+  echo "App \"$MODELNAME_SNAKE_CASE_PLURAL\" already exists - exiting."
+
+  exit 2
+fi
+
+cp -r ../skel/model/MODELNAME_SNAKE_CASE_PLURAL .
+mv MODELNAME_SNAKE_CASE_PLURAL $MODELNAME_SNAKE_CASE_PLURAL
+cd $MODELNAME_SNAKE_CASE_PLURAL
+sed -i "s/MODELNAME/$MODELNAME/g" admin.py
+cd models
+sed -i "s/MODELNAME/$MODELNAME/g" __init__.py
+mv MODELNAME.py $MODELNAME.py
+sed -i "s/MODELNAME/$MODELNAME/g" $MODELNAME.py
+
+popd  # Back to `src/`.
+cd _
+echo "$MODELNAME_SNAKE_CASE_PLURAL" >> model_apps.txt

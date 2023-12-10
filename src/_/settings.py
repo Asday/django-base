@@ -7,7 +7,7 @@ from django.core.checks import Error, register
 
 _settings_check_tag = "settings"
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 placeholder_secret_key = "kick me"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", placeholder_secret_key)
@@ -40,7 +40,7 @@ CSRF_TRUSTED_ORIGINS = json.loads(os.getenv(
     "[]",
 ))
 
-INSTALLED_APPS = [
+_django_apps = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,9 +48,27 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+]
 
+_core_apps = [
     "wait_for_db",
 ]
+
+def parse_list_from_file(fname):
+    lines = []
+
+    with open(fname, "r") as f:
+        for line in f.readlines():
+            head, *_ = line.split("#", maxsplit=1)
+            stripped = head.strip()
+            if stripped:
+                lines.append(stripped)
+
+    return sorted(lines)
+
+_model_apps = parse_list_from_file(BASE_DIR / "_" / "model_apps.txt")
+
+INSTALLED_APPS = _django_apps + _core_apps + _model_apps
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
