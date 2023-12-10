@@ -82,6 +82,7 @@ services:
     command: >-
       uvicorn
         --reload
+        --reload-include *.html
         --proxy-headers
         --host 0.0.0.0
         --port $DOCKER_DJANGO_PORT
