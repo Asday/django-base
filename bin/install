@@ -53,7 +53,7 @@ then
     source .envrc
   fi
 
-  ./bin/update-cert
+  ./bin/cert-update
 
   if test ! -e .built
   then
@@ -63,7 +63,7 @@ then
 
   if test ! -e .completions-generated
   then
-    ./bin/regenerate-completions
+    ./bin/completions-regenerate
     touch .completions-generated
   fi
 
@@ -72,7 +72,7 @@ then
     $DOCKER_COMPOSE --profile test up -d
     if ./bin/manage wait_for_db
     then
-      ./bin/create-schema
+      ./bin/schema-create
       ./bin/manage migrate
     else
       echo 'Database failed to respond, please inspect `$DOCKER_COMPOSE ps`.'
