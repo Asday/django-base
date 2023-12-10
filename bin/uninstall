@@ -9,7 +9,8 @@ cd ..
 rm -f .installed
 touch .built .completions-generated .migrated
 
-db -qc "DROP SCHEMA IF EXISTS $DJANGO_DATABASES_SCHEMA;"
+db -qc "DROP SCHEMA IF EXISTS $DJANGO_DATABASES_SCHEMA;" ||
+  echo "Failed to contact the database - assuming the schema isn't there."
 rm .migrated
 
 rm -f bin/completions/*
