@@ -1,5 +1,5 @@
-factory_boy==3.2.1
+factory_boy==3.3.0
 faker==14.2.1
-pytest==7.1.2
+pytest==7.4.3
 pytest-celery==0.0.0
-pytest-django==4.5.2
+pytest-django==4.7.0
