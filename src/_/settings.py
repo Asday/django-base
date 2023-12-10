@@ -67,8 +67,9 @@ def parse_list_from_file(fname):
     return sorted(lines)
 
 _model_apps = parse_list_from_file(BASE_DIR / "_" / "model_apps.txt")
+_viewtiful_apps = parse_list_from_file(BASE_DIR / "_" / "viewtiful_apps.txt")
 
-INSTALLED_APPS = _django_apps + _core_apps + _model_apps
+INSTALLED_APPS = _django_apps + _core_apps + _model_apps + _viewtiful_apps
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

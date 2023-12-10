@@ -1,0 +1,1 @@
+from .VIEWNAME import VIEWNAME

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -e
+cd "${0%/*}"
+
+if test -z "$2"
+then
+  echo "Usage: ${0##*/} APPNAME VIEWNAME"
+
+  exit 1
+fi
+
+APPNAME=$1
+VIEWNAME=$2
+
+cd ../src/
+
+if test ! -e "$APPNAME"
+then
+  mkdir -p "$APPNAME/views"
+
+  echo "$APPNAME" >> _/viewtiful_apps.txt
+fi
+
+if test ! -d "$APPNAME"
+then
+  echo "\"$APPNAME\" already exists as a file, not a directory - exiting."
+
+  exit 2
+fi
+
+if test -e "$APPNAME/views/$VIEWNAME.py"
+then
+  echo "\"$APPNAME.views.$VIEWNAME\" already exists - exiting."
+
+  exit 3
+fi
+
+cp ../skel/view/VIEWNAME.py $APPNAME/views/$VIEWNAME.py
+sed -i "s/VIEWNAME/$VIEWNAME/g" $APPNAME/views/$VIEWNAME.py
+cat ../skel/view/__init__.append.py >> $APPNAME/views/__init__.py
+sed -i "s/VIEWNAME/$VIEWNAME/g" $APPNAME/views/__init__.py
+sort $APPNAME/views/__init__.py -o $APPNAME/views/__init__.py
