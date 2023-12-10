@@ -69,7 +69,6 @@ then
 
   if test ! -e .migrated
   then
-    $DOCKER_COMPOSE --profile test up -d
     if ./bin/manage wait_for_db
     then
       ./bin/schema-create
